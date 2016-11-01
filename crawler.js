@@ -51,7 +51,7 @@ if (system.args.length !== 6) {
         requesturl = request.url.replace(/"/g, "\\\"");
         requestdata = postdata.replace(/"/g, "\\\"");
         requestreferer = referer.replace(/"/g, "\\\"");
-        console.log("hook_url:{\"url\":\"" + request.url + "\",\"method\":\"" + request.method+ "\",\"cookie\":\"" + cookie + "\",\"post\":\"" + requestdata + "\",\"referer\":\"" + requestreferer + "\"}hook_url_end");
+        console.log("hook_url:{\"url\":\"" + requesturl + "\",\"method\":\"" + request.method+ "\",\"cookie\":\"" + cookie + "\",\"post\":\"" + requestdata + "\",\"referer\":\"" + requestreferer + "\"}hook_url_end");
     };
 
     //hook alert
@@ -80,7 +80,7 @@ if (system.args.length !== 6) {
             requesturl = request.url.replace(/"/g, "\\\"");
             requestdata = postdata.replace(/"/g, "\\\"");
             requestreferer = referer.replace(/"/g, "\\\"");
-            console.log("hook_url:{\"url\":\"" + request.url + "\",\"method\":\"" + request.method+ "\",\"cookie\":\"" + cookie  + "\",\"post\":\"" + requestdata + "\",\"referer\":\"" + requestreferer + "\"}hook_url_end");
+            console.log("hook_url:{\"url\":\"" + requesturl + "\",\"method\":\"" + request.method+ "\",\"cookie\":\"" + cookie  + "\",\"post\":\"" + requestdata + "\",\"referer\":\"" + requestreferer + "\"}hook_url_end");
         };
         newPage.close();
     };
@@ -110,14 +110,13 @@ if (system.args.length !== 6) {
                             for (var j = 0; j < len; j++) {
                                 if(inputs[j].hasAttributes("*")== true){                   
                                     if (j < len - 1) {
-                                        //console.log("row:",inputs[j].hasAttributes("value")," name:",inputs[j].name," values:" + inputs[j].value)
-                                        if(inputs[j].hasAttributes("name")&&inputs[j].name !=undefined){
+                                        if(inputs[j].hasAttributes("name") && inputs[j].name !=undefined && inputs[j].name !=""){
                                             requestdata = requestdata + inputs[j].name 
                                         }  
                                         else{
                                             continue
                                         }
-                                        if(inputs[j].hasAttributes("value")&&inputs[j].value !=""){
+                                        if(inputs[j].hasAttributes("value") && inputs[j].value !="" && inputs[j].value !=undefined){
                                             requestdata = requestdata + "=" + inputs[j].value + "&";
                                         }
                                         else{
@@ -125,13 +124,13 @@ if (system.args.length !== 6) {
                                         }      
                                     }
                                     if (j == len - 1) {
-                                        if(inputs[j].hasAttributes("name")&&inputs[j].name !=undefined){
+                                        if(inputs[j].hasAttributes("name") && inputs[j].name !=undefined && inputs[j].name !=""){
                                                requestdata = requestdata + inputs[j].name 
                                         }
                                         else{
                                             continue
                                         }
-                                        if(inputs[j].hasAttributes("value")&&inputs[j].value !=""){
+                                        if(inputs[j].hasAttributes("value") && inputs[j].value !="" && inputs[j].value !=undefined){
                                             requestdata = requestdata + "=" + inputs[j].value ;
                                         }
                                         else{
@@ -142,7 +141,7 @@ if (system.args.length !== 6) {
                                 }
                             }
 
-                            res = "{\"url\":\"" + url + "\",\"method\":\"post\"," + "\"post\":\""+ requestdata + "\",\"cookie\":\"" + "\",\"referer\":\"" + window.location.href + "\"}";
+                            res = "{\"url\":\"" + url.replace(/"/g, "\\\"") + "\",\"method\":\"post\"," + "\"post\":\""+ requestdata + "\",\"cookie\":\"" + "\",\"referer\":\"" + window.location.href + "\"}";
                             if (urls.indexOf(res) < 0) {
                                 urls.push(res);
                                 console.log(res);
@@ -173,25 +172,26 @@ if (system.args.length !== 6) {
                     }
                     //get onevent
                     function getonevents() {
-                        var allElements = document.getElementsByTagName('*');
-                        var len = allElements.length;// allElements will change,len will change
-                        for (var i = 0; i < len; i++) {
-                            //js_code
-                            if (allElements[i].href) {
-                                javascript_code = allElements[i].href.match("javascript:(.*)");
-                                if (javascript_code) {
-                                    if (onevents.indexOf(javascript_code[0]) < 0) {
-                                        onevents.push(javascript_code[0]);
+                        //eval all on event
+                        var nodes = document.all;
+                        for(var i=0;i<nodes.length;i++){
+                            var attrs = nodes[i].attributes;
+                            for(var j=0;j<attrs.length;j++){
+                                attr_name = attrs[j].nodeName;
+                                attr_value = attrs[j].nodeValue.replace(/return.*;/g,'');
+                                if(attr_name.substr(0,2) == "on"){
+                                    if (onevents.indexOf(attr_value) < 0) {
+                                        onevents.push(attr_value);
                                     }
                                 }
-                            }
-                            //onclick onevent too much,now only click
-                            if (typeof allElements[i].onclick === 'function') {
-                                onclickstr = String(allElements[i].onclick);
-                                if (onclickstrs.indexOf(onclickstr) < 0) {
-                                    onevents.push(allElements[i]);
-                                    onclickstrs.push(onclickstr);
-                                }
+                                if(attr_name == "href"){
+                                    javascript_code = attr_value.match("javascript:(.*)")
+                                   if (javascript_code) {
+                                        if (onevents.indexOf(attr_value) < 0) {
+                                            onevents.push(attr_value);
+                                        }
+                                   }
+                                }                           
                             }
                         }
                     }
@@ -202,25 +202,13 @@ if (system.args.length !== 6) {
                             return;
                         }
                         if (i == (onevents.length - 1)) {
-                            if (typeof  onevents[i] === "string") {
-                                eval(onevents[i]);
-                            }
-                            else {
-                                onevents[i].click();
-                            }
-                            //over~
+                            eval(onevents[i]);
                             setTimeout(function () {
                                 getallurl();
                             }, 1000);
                         }
                         else {
-                            if (typeof  onevents[i] === "string") {
-                                eval(onevents[i]);
-                            }
-                            else {
-                                onevents[i].click();
-                            }
-
+                            eval(onevents[i]);
                             i = i + 1; //1
                             setTimeout(function () {
                                 doloop(i);
